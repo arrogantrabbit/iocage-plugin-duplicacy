@@ -1,6 +1,6 @@
 {
     "name": "duplicacy",
-    "release": "12.1-RELEASE",
+    "release": "13.1-RELEASE",
     "artifact": "https://github.com/arrogantrabbit/iocage-plugin-duplicacy.git",
     "properties": {
         "nat": 1,
@@ -9,8 +9,7 @@
     "pkgs": [
         "curl",
         "wget",
-        "jq", 
-	"sed"
+        "jq" 
     ],
     "packagesite": "http://pkg.FreeBSD.org/${ABI}/latest",
     "fingerprints": {
