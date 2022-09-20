@@ -59,7 +59,7 @@ update_duplicacy()
 				chmod u=rwx,g=rx,o=rx "${DUPLICACY_PATH}"
 				echo "Updated to ${SELECTED_VERSION}"
 				ln -sF "${DUPLICACY_PATH}" /usr/local/bin/duplicacy_web
-				service restart duplicacy
+				service duplicacy restart 
 			else
 				echo "Could not download ${DOWNLOAD_URL}"
 				rm -f "${DUPLICACY_PATH}"
