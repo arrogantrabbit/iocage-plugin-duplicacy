@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# PROVIDE: duplicacy
+# REQUIRE: LOGIN FILESYSTEMS netwait
+# KEYWORD: SHUTDOWN
+
+. /etc/rc.subr
+
+name=duplicacy
+rcvar=${name}_enable
+
+load_rc_config $name
+
+export HOME=/root
+pidfile="/var/run/${name}.pid"
+command="/usr/sbin/daemon"
+command_args="-f -H -o \"/var/log/${name}.log\" \
+    -P \"${pidfile}\" -u root /usr/local/bin/duplicacy_web "
+
+run_rc_command "$1"

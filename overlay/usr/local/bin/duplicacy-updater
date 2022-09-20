@@ -1,0 +1,83 @@
+#!/bin/sh
+
+DUPLICACY_UPDATE_INTERVAL_SECONDS=900
+
+
+# Duplicacy version
+# Acceptable values are Latest, Stable, Custom, or specific version
+# readonly REQUESTED_VERSION="1.6.3"
+# readonly REQUESTED_VERSION="Latest"
+readonly REQUESTED_VERSION="Stable"
+# readonly REQUESTED_VERSION="Custom"
+readonly DUPLICACY_CUSTOM_BINARY="/root/duplicacy_web_freebsd_custom"
+
+readonly DUPLICACY_CONFIG_ROOT="/root"
+readonly DOWNLOAD_URL_PREFIX="https://acrosync.com/duplicacy-web/duplicacy_web_freebsd_x64"
+
+update_duplicacy()
+{
+	# Determine required version
+	case "${REQUESTED_VERSION}" in
+	Stable|stable)
+		SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' |jq -r '.stable' 2>/dev/null)
+		;;
+	Latest|latest)
+		SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' |jq -r '.latest' 2>/dev/null)
+		;;
+	Custom|custom)
+		;;
+	*)
+		if [[ "${REQUESTED_VERSION}"  =~ ^[0-9.]+$ ]] ; then
+			SELECTED_VERSION="${REQUESTED_VERSION}"
+		else
+			echo "Unrecognised update channel ${REQUESTED_VERSION}. Defaulting to Stable";
+			SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' |jq -r '.stable' 2>/dev/null)
+		fi
+		;;
+	esac
+
+	case "${REQUESTED_VERSION}" in
+	Custom|custom)
+		DUPLICACY_PATH="${DUPLICACY_CUSTOM_BINARY}"
+		if [ -f "${DUPLICACY_PATH}" ]
+		then
+			echo "Custom binary ${DUPLICACY_PATH} exists"
+		else
+			echo "Duplicacy custom binary ${DUPLICACY_PATH} does not exist"
+			return 1
+		fi
+		;;
+	*)
+		DUPLICACY_PATH="${DUPLICACY_CONFIG_ROOT}/duplicacy_web_freebsd_x64_${SELECTED_VERSION}"
+		if [ -f "${DUPLICACY_PATH}" ]
+		then
+			echo "Version ${SELECTED_VERSION} is up to date"
+		else
+			DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}_${SELECTED_VERSION}"
+
+			if wget -O "${DUPLICACY_PATH}" "${DOWNLOAD_URL}" ; then
+				chmod u=rwx,g=rx,o=rx "${DUPLICACY_PATH}"
+				echo "Updated to ${SELECTED_VERSION}"
+				ln -sF "${DUPLICACY_PATH}" /usr/local/bin/duplicacy_web
+				service restart duplicacy
+			else
+				echo "Could not download ${DOWNLOAD_URL}"
+				rm -f "${DUPLICACY_PATH}"
+				return 1
+			fi
+		fi
+		;;
+	esac
+
+
+
+
+	return 0
+}
+
+
+while true; do
+	update_duplicacy
+	sleep "$DUPLICACY_UPDATE_INTERVAL_SECONDS"
+done
+
