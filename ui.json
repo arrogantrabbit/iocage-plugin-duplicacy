@@ -1,3 +1,4 @@
 {
-	"adminportal": "http://%%IP%%:3875"
+	"adminportal": "http://%%IP%%:3875",
+	"docurl": "https://duplicacy.com/guide.html"
 }

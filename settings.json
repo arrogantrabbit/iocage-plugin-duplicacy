@@ -1,0 +1,23 @@
+{
+	"servicerestart": "service duplicacy restart",
+	"serviceget" : "/usr/local/bin/serviceget",
+	"serviceset" : "/usr/local/bin/serviceset",
+	"options": {
+		"duplicacy_user":
+		{
+			"description": "Sets user ID and Group ID for duplicacy to run as",
+			"name": "User and Group for duplicacy user",
+			"requirerestart": true,
+			"requiredargs": {
+				"user_id": {
+					"type":"int",
+					"description":"User ID"
+				},
+				"group_id": {
+					"type":"int",
+					"description":"Group ID"
+				}
+			}
+		}
+	}
+}

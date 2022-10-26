@@ -22,6 +22,7 @@ sed -i "s/\"listening_address\"\s*:\s*\".*\"/\"listening_address\" : \"0\.0\.0\.
 
 fi
 
+sysrc duplicacy_runas="root"
 
 NETWAIT_IP=1.1.1.1
 

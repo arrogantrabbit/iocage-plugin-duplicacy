@@ -1,0 +1,23 @@
+#!/bin/sh
+
+case $1 in
+    duplicacy_user) 
+        pw deluser duplicacy 2>/dev/null
+	pw delgroup duplicacy 2>/dev/null 
+
+	if [ -z "$2" -o "$2" == "0" ]; then  
+        	sysrc duplicacy_runas="root"
+	else
+		if [ -z $3 ]; then 
+			group=$2
+		else
+			group=$3
+		fi
+		pw groupadd duplicacy -g $group || exit 1
+	 	pw useradd -n duplicacy -u $2 -G duplicacy -d /nonexistent -s /usr/sbin/nologin -h - || exit 1
+		sysrc duplicacy_runas="duplicacy"
+	fi
+	;;
+    *) echo "Unknown option" ; exit 1
+        ;;
+esac

@@ -10,11 +10,11 @@ name=duplicacy
 rcvar=${name}_enable
 
 load_rc_config $name
-
+${duplicacy_runas:="root"}
 export HOME=/root
 pidfile="/var/run/${name}.pid"
 command="/usr/sbin/daemon"
 command_args="-f -H -o \"/var/log/${name}.log\" \
-    -P \"${pidfile}\" -u root /usr/local/bin/duplicacy_web "
+    -P \"${pidfile}\" -u ${duplicacy_runas} /usr/local/bin/duplicacy_web "
 
 run_rc_command "$1"
