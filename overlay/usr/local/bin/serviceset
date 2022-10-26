@@ -16,7 +16,7 @@ case $1 in
 		pw groupadd duplicacy -g $group || exit 1
 	 	pw useradd -n duplicacy -u $2 -G duplicacy -d /nonexistent -s /usr/sbin/nologin -h - || exit 1
 		sysrc duplicacy_runas="duplicacy"
-		sudo chown -R duplicacy:duplicacy /root
+		chown -R duplicacy:duplicacy /root
 	fi
 	;;
     *) echo "Unknown option" ; exit 1
