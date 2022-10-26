@@ -10,7 +10,7 @@ name=duplicacy
 rcvar=${name}_enable
 
 load_rc_config $name
-${duplicacy_runas:="root"}
+: ${duplicacy_runas:="root"}
 export HOME=/root
 pidfile="/var/run/${name}.pid"
 command="/usr/sbin/daemon"
