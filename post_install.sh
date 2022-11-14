@@ -33,7 +33,7 @@ service duplicacyupd enable
 service duplicacy enable
 
 echo "Downloading duplicacy"
-printf ""
+printf "."
 
 /usr/local/bin/duplicacy-updater oneoff || exit 1
 
