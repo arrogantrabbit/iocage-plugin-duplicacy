@@ -1,13 +1,12 @@
 #!/bin/sh
 
 case $1 in
-	duplicacy_user) 
-		username=$(sysrc -n duplicacy_runas)
-		echo "Duplicacy is running as ${username}: $(id $username)"
-          ;;
-    *) echo "Unknown option"
-       exit 1
-       ;;
+duplicacy_user)
+  username=$(sysrc -n duplicacy_runas)
+  echo "Duplicacy is running as ${username}: $(id $username)"
+  ;;
+*)
+  echo "Unknown option"
+  exit 1
+  ;;
 esac
-
-

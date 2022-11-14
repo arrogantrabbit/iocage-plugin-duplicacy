@@ -4,21 +4,21 @@ CONFIGPATH=/root/.duplicacy-web
 
 if [ ! -f /root/settings.json ]; then
 
-echo "Configuration file does not exist."
-echo "Creating default one enabling listening on all interfaces"
+  echo "Configuration file does not exist."
+  echo "Creating default one enabling listening on all interfaces"
 
-mkdir -p ${CONFIGPATH}
+  mkdir -p ${CONFIGPATH}
 
-cat > ${CONFIGPATH}/settings.json << EOF
+  cat >${CONFIGPATH}/settings.json <<EOF
 {
     "listening_address"     : "0.0.0.0:3875"
 }
 EOF
 
-else 
+else
 
-echo "Setting listening_address to 0.0.0.0:3875"
-sed -i "s/\"listening_address\"\s*:\s*\".*\"/\"listening_address\" : \"0\.0\.0\.0:3875\"/g" ${CONFIGPATH}/settings.json
+  echo "Setting listening_address to 0.0.0.0:3875"
+  sed -i "s/\"listening_address\"\s*:\s*\".*\"/\"listening_address\" : \"0\.0\.0\.0:3875\"/g" ${CONFIGPATH}/settings.json
 
 fi
 

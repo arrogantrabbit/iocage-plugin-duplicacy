@@ -16,5 +16,4 @@ command="/usr/sbin/daemon"
 command_args="-f -H -o \"/var/log/${name}.log\" \
     -P \"${pidfile}\" -u root /usr/local/bin/duplicacy-updater "
 
-
 run_rc_command "$1"

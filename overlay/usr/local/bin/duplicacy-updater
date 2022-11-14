@@ -1,7 +1,8 @@
 #!/bin/sh
 
-DUPLICACY_UPDATE_INTERVAL_SECONDS=900
-
+# Check for updates on start and every 8 hours thereafter
+DUPLICACY_UPDATE_INTERVAL_SECONDS=28800
+DUPLICACY_FAILED_UPDATE_RETRY_SECONDS=60
 
 # Duplicacy version
 # Acceptable values are Latest, Stable, Custom, or specific version
@@ -14,70 +15,86 @@ readonly DUPLICACY_CUSTOM_BINARY="/root/duplicacy_web_freebsd_custom"
 readonly DUPLICACY_CONFIG_ROOT="/root"
 readonly DOWNLOAD_URL_PREFIX="https://acrosync.com/duplicacy-web/duplicacy_web_freebsd_x64"
 
-update_duplicacy()
-{
-	# Determine required version
-	case "${REQUESTED_VERSION}" in
-	Stable|stable)
-		SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' |jq -r '.stable' 2>/dev/null)
-		;;
-	Latest|latest)
-		SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' |jq -r '.latest' 2>/dev/null)
-		;;
-	Custom|custom)
-		;;
-	*)
-		if [[ "${REQUESTED_VERSION}"  =~ ^[0-9.]+$ ]] ; then
-			SELECTED_VERSION="${REQUESTED_VERSION}"
-		else
-			echo "Unrecognised update channel ${REQUESTED_VERSION}. Defaulting to Stable";
-			SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' |jq -r '.stable' 2>/dev/null)
-		fi
-		;;
-	esac
+update_duplicacy() {
+  # Determine required version
+  case "${REQUESTED_VERSION}" in
+  Stable | stable)
+    SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' | jq -r '.stable' 2>/dev/null)
+    ;;
+  Latest | latest)
+    SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' | jq -r '.latest' 2>/dev/null)
+    ;;
+  Custom | custom) ;;
 
-	case "${REQUESTED_VERSION}" in
-	Custom|custom)
-		DUPLICACY_PATH="${DUPLICACY_CUSTOM_BINARY}"
-		if [ -f "${DUPLICACY_PATH}" ]
-		then
-			echo "Custom binary ${DUPLICACY_PATH} exists"
-		else
-			echo "Duplicacy custom binary ${DUPLICACY_PATH} does not exist"
-			return 1
-		fi
-		;;
-	*)
-		DUPLICACY_PATH="${DUPLICACY_CONFIG_ROOT}/duplicacy_web_freebsd_x64_${SELECTED_VERSION}"
-		if [ -f "${DUPLICACY_PATH}" ]
-		then
-			echo "Version ${SELECTED_VERSION} is up to date"
-		else
-			DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}_${SELECTED_VERSION}"
+  *)
+    if [[ "${REQUESTED_VERSION}" =~ ^[0-9.]+$ ]]; then
+      SELECTED_VERSION="${REQUESTED_VERSION}"
+    else
+      echo "Unrecognised update channel ${REQUESTED_VERSION}. Defaulting to Stable"
+      SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' | jq -r '.stable' 2>/dev/null)
+    fi
+    ;;
+  esac
 
-			if wget -O "${DUPLICACY_PATH}" "${DOWNLOAD_URL}" ; then
-				chmod u=rwx,g=rx,o=rx "${DUPLICACY_PATH}"
-				echo "Updated to ${SELECTED_VERSION}"
-				ln -sF "${DUPLICACY_PATH}" /usr/local/bin/duplicacy_web
-				service duplicacy restart 
-			else
-				echo "Could not download ${DOWNLOAD_URL}"
-				rm -f "${DUPLICACY_PATH}"
-				return 1
-			fi
-		fi
-		;;
-	esac
+  case "${REQUESTED_VERSION}" in
+  Custom | custom)
+    DUPLICACY_PATH="${DUPLICACY_CUSTOM_BINARY}"
+    if [ -f "${DUPLICACY_PATH}" ]; then
+      echo "Custom binary ${DUPLICACY_PATH} exists"
+    else
+      echo "Duplicacy custom binary ${DUPLICACY_PATH} does not exist"
+      return 1
+    fi
+    ;;
+  *)
+    DUPLICACY_PATH="${DUPLICACY_CONFIG_ROOT}/duplicacy_web_freebsd_x64_${SELECTED_VERSION}"
+    if [ -f "${DUPLICACY_PATH}" ]; then
+      echo "Version ${SELECTED_VERSION} is up to date"
+    else
+      DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}_${SELECTED_VERSION}"
 
+      if wget -O "${DUPLICACY_PATH}" "${DOWNLOAD_URL}"; then
 
+        WEB_JSON=$(curl -s ${URL_VERSION_CHECK})
+        HASH=$(echo $WEB_JSON | jq -r ".hashes.\"${SELECTED_VERSION}\".freebsd_x64" 2>/dev/null)
+        if [ -n "$HASH" ] && [ "$HASH" != "null" ]; then
+          read -r ACTUAL_HASH _ <<<"$(sha256sum -b "${DUPLICACY_PATH}")"
+          if [ "$HASH" != "$ACTUAL_HASH" ]; then
+            printf "Downloaded file hash differs from the expected.\n"
+            printf "Web service reports hash value of %s.\n" "${HASH}"
+            printf "Downloaded executable has a hash value of %s.\n" "$ACTUAL_HASH"
+            printf "Cannot proceed. Deleting the executable %s and exiting.\n" "$DUPLICACY_PATH"
+            rm -f "${DUPLICACY_PATH}"
+            return 1
+          else
+            printf "Hash of the downloaded executable matches the expected value "
+            printf "for binary freebsd_x64, version %s: %s\n" "$SELECTED_VERSION" "$HASH"
+          fi
+        else
+          printf "\nCannot verify validify of the downloaded executable: "
+          printf "could not get expected hash value from the web service at %s " "$URL_VERSION_CHECK"
+          printf "for the freebsd_x64 binary of version %s\n" "$SELECTED_VERSION"
+          printf "\n***Proceeding anyway***.\n\n"
+        fi
+        chmod u=rwx,g=rx,o=rx "${DUPLICACY_PATH}"
+        echo "Updated to ${SELECTED_VERSION}"
+        ln -sF "${DUPLICACY_PATH}" /usr/local/bin/duplicacy_web
+        service duplicacy restart
+      else
+        echo "Could not download ${DOWNLOAD_URL}"
+        rm -f "${DUPLICACY_PATH}"
+        return 1
+      fi
+    fi
+    ;;
+  esac
 
-
-	return 0
+  return 0
 }
 
-
 while true; do
-	update_duplicacy
-	sleep "$DUPLICACY_UPDATE_INTERVAL_SECONDS"
+  while ! update_duplicacy; do
+    sleep "$DUPLICACY_FAILED_UPDATE_RETRY_SECONDS"
+  done
+  sleep "$DUPLICACY_UPDATE_INTERVAL_SECONDS"
 done
-
