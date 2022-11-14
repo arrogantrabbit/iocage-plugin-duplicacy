@@ -14,15 +14,17 @@ readonly DUPLICACY_CUSTOM_BINARY="/root/duplicacy_web_freebsd_custom"
 
 readonly DUPLICACY_CONFIG_ROOT="/root"
 readonly DOWNLOAD_URL_PREFIX="https://acrosync.com/duplicacy-web/duplicacy_web_freebsd_x64"
+readonly URL_VERSION_CHECK="https://duplicacy.com/latest_web_version"
+
 
 update_duplicacy() {
   # Determine required version
   case "${REQUESTED_VERSION}" in
   Stable | stable)
-    SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' | jq -r '.stable' 2>/dev/null)
+    SELECTED_VERSION=$(curl -s "$URL_VERSION_CHECK" | jq -r '.stable' 2>/dev/null)
     ;;
   Latest | latest)
-    SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' | jq -r '.latest' 2>/dev/null)
+    SELECTED_VERSION=$(curl -s "$URL_VERSION_CHECK" | jq -r '.latest' 2>/dev/null)
     ;;
   Custom | custom) ;;
 
@@ -31,7 +33,7 @@ update_duplicacy() {
       SELECTED_VERSION="${REQUESTED_VERSION}"
     else
       echo "Unrecognised update channel ${REQUESTED_VERSION}. Defaulting to Stable"
-      SELECTED_VERSION=$(curl -s 'https://duplicacy.com/latest_web_version' | jq -r '.stable' 2>/dev/null)
+      SELECTED_VERSION=$(curl -s "$URL_VERSION_CHECK" | jq -r '.stable' 2>/dev/null)
     fi
     ;;
   esac
@@ -58,7 +60,8 @@ update_duplicacy() {
         WEB_JSON=$(curl -s ${URL_VERSION_CHECK})
         HASH=$(echo $WEB_JSON | jq -r ".hashes.\"${SELECTED_VERSION}\".freebsd_x64" 2>/dev/null)
         if [ -n "$HASH" ] && [ "$HASH" != "null" ]; then
-          read -r ACTUAL_HASH _ <<<"$(sha256sum -b "${DUPLICACY_PATH}")"
+          ACTUAL_HASH_OUTPUT="$(sha256sum -b "${DUPLICACY_PATH}")"
+	  ACTUAL_HASH=${ACTUAL_HASH_OUTPUT%% *}
           if [ "$HASH" != "$ACTUAL_HASH" ]; then
             printf "Downloaded file hash differs from the expected.\n"
             printf "Web service reports hash value of %s.\n" "${HASH}"
@@ -80,6 +83,7 @@ update_duplicacy() {
         echo "Updated to ${SELECTED_VERSION}"
         ln -sF "${DUPLICACY_PATH}" /usr/local/bin/duplicacy_web
         service duplicacy restart
+	echo "Success"
       else
         echo "Could not download ${DOWNLOAD_URL}"
         rm -f "${DUPLICACY_PATH}"
