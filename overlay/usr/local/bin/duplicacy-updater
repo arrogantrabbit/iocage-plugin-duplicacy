@@ -104,6 +104,7 @@ if [ "$1" = "oneoff" ]; then
   else
     exit 1
   fi
+  printf ""
 else
   while true; do
     while ! update_duplicacy; do
