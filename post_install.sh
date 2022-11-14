@@ -33,15 +33,18 @@ echo "Enabling netwait and newsyslog services"
 service newsyslog enable
 service netwait enable
 
-service duplicacy enable
-
-echo "Downloading duplicacy executable and starting service"
-
-/usr/local/bin/duplicacy-updater oneshot
-
 echo "Starting duplicacy updater"
 service duplicacyupd enable
 service duplicacyupd start
 
-echo "Ready"
+echo "Waiting for duplicacy binary to download"
+while [ ! -f /usr/local/bin/duplicacy_web ]; do
+  echo ... Still waiting for duplicacy to download
+  sleep 2
+done
 
+echo "Starting duplicacy service"
+service duplicacy enable
+service duplicacy start
+
+echo "Ready"

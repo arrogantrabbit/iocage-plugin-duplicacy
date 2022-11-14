@@ -100,10 +100,5 @@ while true; do
   while ! update_duplicacy; do
     sleep "$DUPLICACY_FAILED_UPDATE_RETRY_SECONDS"
   done
-
-  if [ "$1" == "oneshot" ]; then
-    break
-  fi
-
   sleep "$DUPLICACY_UPDATE_INTERVAL_SECONDS"
 done
