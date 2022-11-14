@@ -33,7 +33,10 @@ echo "Enabling netwait and newsyslog services"
 service newsyslog enable
 service netwait enable
 
+service duplicacy enable
+
 echo "Downloading duplicacy executable and starting service"
+
 /usr/local/bin/duplicacy-updater oneshot
 
 echo "Starting duplicacy updater"
