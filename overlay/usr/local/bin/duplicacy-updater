@@ -17,6 +17,8 @@ readonly DOWNLOAD_URL_PREFIX="https://acrosync.com/duplicacy-web/duplicacy_web_f
 readonly URL_VERSION_CHECK="https://duplicacy.com/latest_web_version"
 
 
+
+
 update_duplicacy() {
   # Determine required version
   case "${REQUESTED_VERSION}" in
@@ -54,14 +56,12 @@ update_duplicacy() {
       echo "Version ${SELECTED_VERSION} is up to date"
     else
       DOWNLOAD_URL="${DOWNLOAD_URL_PREFIX}_${SELECTED_VERSION}"
-
       if wget -O "${DUPLICACY_PATH}" "${DOWNLOAD_URL}"; then
-
         WEB_JSON=$(curl -s ${URL_VERSION_CHECK})
-        HASH=$(echo $WEB_JSON | jq -r ".hashes.\"${SELECTED_VERSION}\".freebsd_x64" 2>/dev/null)
+        HASH=$(echo "$WEB_JSON" | jq -r ".hashes.\"${SELECTED_VERSION}\".freebsd_x64" 2>/dev/null)
         if [ -n "$HASH" ] && [ "$HASH" != "null" ]; then
           ACTUAL_HASH_OUTPUT="$(sha256sum -b "${DUPLICACY_PATH}")"
-	  ACTUAL_HASH=${ACTUAL_HASH_OUTPUT%% *}
+          ACTUAL_HASH=${ACTUAL_HASH_OUTPUT%% *}
           if [ "$HASH" != "$ACTUAL_HASH" ]; then
             printf "Downloaded file hash differs from the expected.\n"
             printf "Web service reports hash value of %s.\n" "${HASH}"
@@ -80,10 +80,12 @@ update_duplicacy() {
           printf "\n***Proceeding anyway***.\n\n"
         fi
         chmod u=rwx,g=rx,o=rx "${DUPLICACY_PATH}"
-        echo "Updated to ${SELECTED_VERSION}"
+        echo "Installed version ${SELECTED_VERSION}"
         ln -sF "${DUPLICACY_PATH}" /usr/local/bin/duplicacy_web
-        service duplicacy restart
-	echo "Success"
+        if [ "$1" != "oneoff" ]; then
+          service duplicacy restart
+        fi
+        echo "Success"
       else
         echo "Could not download ${DOWNLOAD_URL}"
         rm -f "${DUPLICACY_PATH}"
@@ -96,9 +98,17 @@ update_duplicacy() {
   return 0
 }
 
-while true; do
-  while ! update_duplicacy; do
-    sleep "$DUPLICACY_FAILED_UPDATE_RETRY_SECONDS"
+if [ "$1" = "oneoff" ]; then
+  if update_duplicacy oneoff; then
+    exit 0
+  else
+    exit 1
+  fi
+else
+  while true; do
+    while ! update_duplicacy; do
+      sleep "$DUPLICACY_FAILED_UPDATE_RETRY_SECONDS"
+    done
+    sleep "$DUPLICACY_UPDATE_INTERVAL_SECONDS"
   done
-  sleep "$DUPLICACY_UPDATE_INTERVAL_SECONDS"
-done
+fi
